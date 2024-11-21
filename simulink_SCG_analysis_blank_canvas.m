@@ -1,7 +1,7 @@
-%% Rafael Cordero - June 2020
+%% Rafael Cordero - November 2024
+% Script to load ECG and SCG data and package it correctly for subsequent processing in Simulink.
 
-% Script to load ECG and SCG data and define it correctly for processing in Simulink.
-
+% Workspace Cleanup.
 clear
 close all
 clc
@@ -9,34 +9,64 @@ bdclose('all')
     
 % Figure Display settings.
 get(0,'Factory');
-set(0,'defaultfigurecolor',[1 1 1]);
+set(0,'defaultfigurecolor', [1 1 1]);
 set(0,'DefaultFigureWindowStyle','docked');
 
-% Loading user-specified data.
-startingFolder = 'C:\Users\Rafael\Dropbox\Post-Doc Research\Data';
+% Loading specific data recording using UI.
+startingFolder = 'C:\Users\rcord\OneDrive\Documentos\Data\PhD\Data'; % Change accordingly.
 defaultFileName = fullfile(startingFolder);
 [file_name, folder] = uigetfile(defaultFileName, 'Select a file');
 
-if file_name == 0% If the user clicked the 'Cancel' button.
+if file_name == 0 % If the user clicked the 'Cancel' button.
     return;
+    error('Analysis terminated by user.') 
 end
 
 fullfileName = fullfile(folder, file_name);
 load(fullfileName);
 
-save_name = fullfileName(strfind(fullfileName,save_name):end-4);
-
-% Specifying figure-saving folder
-% figureFolder = 'C:\Users\Rafael\Dropbox\Post-Doc Research\Saved Figures\Complete Analysis';
-% mkdir(figureFolder, save_name) % Creating the folder to store the figures.
+% Specifying figure-saving folder.
+flag_save = 0;
+if flag_save
+    % Extract the folder name from the file path.
+    save_name = fullfileName(strfind(fullfileName, save_name):end-4); 
+    
+    % Define the parent folder path.
+    figureFolder = 'C:\Users\Rafael\Dropbox\Post-Doc Research\Figures';
+    
+    % Full path for the new folder.
+    newFolderPath = fullfile(figureFolder, save_name);
+    
+    % Check if the folder already exists.
+    if exist(newFolderPath, 'dir')
+        userChoice = input(['The folder "' newFolderPath '" already exists. Do you want to overwrite it? (y/n): '], 's');
+        
+        if strcmpi(userChoice, 'n')
+            flag_save = 0;
+            disp('Folder creation canceled. flag_save has been set to 0.');
+            return;
+        elseif strcmpi(userChoice, 'y') % Overwrite.
+            disp(['Overwriting folder "' newFolderPath '".']);
+        else % Invalid input.
+            disp('Invalid choice. Folder creation canceled.');
+            flag_save = 0;
+            return;
+        end
+    else % Folder does not exist, proceed to create it.
+        mkdir(newFolderPath);
+        disp(['Folder "' newFolderPath '" has been created.']);
+    end
+end
 
 clear ans defaultFileName file_name folder startingFolder fullfileName
 
-%%  ----------------------------------------- 0.0 Channel  Identification  ----------------------------------------- %%
+
+%%  ---------------------------- 1.0 Channel Identification  ---------------------------- %%
+
+fs = 1000; % Ideally, this should have been exported along with the data (or derived from a time vector).
 
 % Identifying which channels correspond to the ECGs and which to the Cardiac Vibrations.
 for i=1:length(channels)
-    
     
     % Identifying ECG channels.
     if contains(channels(i),'ECGI','IgnoreCase',true) || contains(channels(i),'ECG I','IgnoreCase',true) || contains(channels(i),'ECG1','IgnoreCase',true) || contains(channels(i),'ECG 1','IgnoreCase',true)
@@ -55,9 +85,7 @@ for i=1:length(channels)
         ecgs.signals.short=data(:,i);
     end
     
-    
     % Identifying 1D Cardiac Vibration channels.
-    
     if contains(channels(i),'RASonR','IgnoreCase',true) || contains(channels(i),'RA SonR','IgnoreCase',true)
         cardiac_vibrations.signals.ra_ea = data(:,i);
     end
@@ -78,18 +106,16 @@ for i=1:length(channels)
         cardiac_vibrations.signals.subq_scg_sternal_1D = data(:,i);
     end
     
-    
     % Identifying 3D Cardiac Vibration channels.
-    
-    if contains(channels(i),'3DLeadX') || contains(channels(i),'3D Lead X') || contains(channels(i),'3DX') || contains(channels(i),'3D X')
+    if contains(channels(i),'3DLeadX','IgnoreCase',true) || contains(channels(i),'3D Lead X','IgnoreCase',true) || contains(channels(i),'3DX','IgnoreCase',true) || contains(channels(i),'3D X','IgnoreCase',true)
         cardiac_vibrations.signals.lead_3D_x = data(:,i);
     end
     
-    if contains(channels(i),'3DLeadY') || contains(channels(i),'3D Lead Y') || contains(channels(i),'3DY') || contains(channels(i),'3D Y')
+    if contains(channels(i),'3DLeadY','IgnoreCase',true) || contains(channels(i),'3D Lead Y','IgnoreCase',true) || contains(channels(i),'3DY','IgnoreCase',true) || contains(channels(i),'3D Y')
         cardiac_vibrations.signals.lead_3D_y = data(:,i);
     end
     
-    if contains(channels(i),'3DLeadZ') || contains(channels(i),'3D Lead Z') || contains(channels(i),'3DZ') || contains(channels(i),'3D Z')
+    if contains(channels(i),'3DLeadZ','IgnoreCase',true) || contains(channels(i),'3D Lead Z','IgnoreCase',true) || contains(channels(i),'3DZ','IgnoreCase',true) || contains(channels(i),'3D Z','IgnoreCase',true)
         cardiac_vibrations.signals.lead_3D_z = data(:,i);
     end
     
@@ -106,43 +132,49 @@ for i=1:length(channels)
         cardiac_vibrations.signals.can_3D_z = data(:,i);
     end
     
-    
     % Identifying the pressure channels.
-    
     if contains(channels(i),'RVPressure') || contains(channels(i),'RV Pressure')
         pressure.signals.rv_press = data(:,i);
-        pressure.dPdt.rv_dpdt = diff(pressure.signals.LV)/(1/fs);
+        pressure.dPdt.rv_dpdt = diff(pressure.signals.rv_press)/(1/fs);
     end
     
     if contains(channels(i),'LVPressure') || contains(channels(i),'LV Pressure')
         pressure.signals.lv_press = data(:,i);
-        pressure.dPdt.lv_dpdt = diff(pressure.signals.LV)/(1/fs);
+        pressure.dPdt.lv_dpdt = diff(pressure.signals.lv_press)/(1/fs);
     end
     
 end
 
 clear i ans data channels
 
-%%  ----------------------------------------- 1.0 Setting up Simulink Parameters  ----------------------------------------- %%
+
+%%  ---------------------------- 2.0 Setting up Simulink Parameters  ---------------------------- %%
 
 % Simulation parameters.
 param_tot_samples = length(ecgs.signals.ecgI); % Total number of samples in the recording.
 param_sim_time = param_tot_samples/fs; % Total simulation time of the recording (in seconds).
-t = force_col(0:1/fs:(param_tot_samples-1)/fs); % Vector marking the time stamp of each sample.
+t = 0:1/fs:(param_tot_samples-1)/fs; % Vector marking the time stamp of each sample -> Ideally this should have been extracted from an independent time signal.
+t = t(:);
 
 % Signals (in column form - for input into Simulink).
-signals.ecg.input = force_col(ecgs.signals.short);
-signals.scg.input_x = force_col(cardiac_vibrations.signals.lead_3D_x);
-signals.scg.input_y = force_col(cardiac_vibrations.signals.lead_3D_y);
-signals.scg.input_z = force_col(cardiac_vibrations.signals.lead_3D_z);
+signals.ecg.input = ecgs.signals.short(:);
+signals.scg.input_x = cardiac_vibrations.signals.lead_3D_x(:);
+signals.scg.input_y = cardiac_vibrations.signals.lead_3D_y(:);
+signals.scg.input_z = cardiac_vibrations.signals.lead_3D_z(:);
 
 clear ecgs cardiac_vibrations
 
-%%  ----------------------------------------- 2.0 Simulink Simulation (ECG and SCG processing) ----------------------------------------- %%
 
-open_system('WorkingModel'); sim('WorkingModel');
+%%  ---------------------------- 3.0 Loading Simulink Model (ECG and SCG processing) ---------------------------- %%
 
-% Saving Simulink preprocessing outputs.signals.ecg.preprocessed = out_ecg_preprocessing.signals.values(:,1);
+open_system('WorkingModel'); 
+sim('WorkingModel');
+
+
+%%  ---------------------------- 4.0 Saving Model Outputs [WIP] ---------------------------- %%
+
+% Saving Simulink preprocessing outputs.
+signals.ecg.preprocessed   = out_ecg_preprocessing.signals.values(:,1);
 signals.scg.preprocessed_x = out_scg_xyz_preprocessing.signals.values(:,1);
 signals.scg.preprocessed_y = out_scg_xyz_preprocessing.signals.values(:,2);
 signals.scg.preprocessed_z = out_scg_xyz_preprocessing.signals.values(:,3);
