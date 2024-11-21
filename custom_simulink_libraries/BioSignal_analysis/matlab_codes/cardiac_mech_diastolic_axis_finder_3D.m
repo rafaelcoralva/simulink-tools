@@ -6,8 +6,8 @@ function [axes_angles] = cardiac_mech_diastolic_axis_finder_3D(avg_s2_xyz)
 % Part 2. Identification of the azimuthal and elevation angles that produce the maximum antipodal distance of the 3D hull.
 
 % INPUTS:
-% avg_s2_xyz (Matrix: [length(avg_s2), 3] - 3D average S2 acceleration trajectory matrix of size,
-%                                           where the three columns correspond to the 3 scg xyz components
+% avg_s2_xyz (Matrix: [length(avg_s2), 3]) - 3D average S2 acceleration trajectory matrix of size,
+%                                            where the three columns correspond to the 3 scg xyz components
 
 % OUTPUTS:
 % axis_angles = [el_mech_axis, az_mech_axis, el_antimech_axis, az_antimech_axis], where:
@@ -43,6 +43,7 @@ function [axes_angles] = cardiac_mech_diastolic_axis_finder_3D(avg_s2_xyz)
 
 flag_plot = 1; % Plot flag. If 0, no plots are produced. If 1, only final plot is produced. If 2, all plots are produced.
 
+
 %% 1.1 Calculation of the 3D hull surface using the MATLAB boundary function.
 % In this entire part, the xyz coordinates are assumed to be in the SCG reference frame.
 triangles_idx_xzy = boundary(avg_s2_xyz(:,1), avg_s2_xyz(:,3), avg_s2_xyz(:,2), 0); % A matrix of triangles that comprises the 3D hull surface. 
@@ -66,13 +67,13 @@ triangles_idx_xzy_interp = triangles_idx_xzy; % A copy of the matrix of triangle
 counter_interps = 0; % Counter of times the interpolation is performed.
 
 % Initialization of the three vertices of the four new triangles created upon each Tri-Force interpolation.
-small_tri_1_vert_1_xyz = [nan nan nan]; small_tri_1_vert_2_xyz = [nan nan nan]; small_tri_1_vert_3_xyz = [nan nan nan];
-small_tri_2_vert_1_xyz = [nan nan nan]; small_tri_2_vert_2_xyz = [nan nan nan]; small_tri_2_vert_3_xyz = [nan nan nan];
-small_tri_3_vert_1_xyz = [nan nan nan]; small_tri_3_vert_2_xyz = [nan nan nan]; small_tri_3_vert_3_xyz = [nan nan nan];
-small_tri_4_vert_1_xyz = [nan nan nan]; small_tri_4_vert_2_xyz = [nan nan nan]; small_tri_4_vert_3_xyz = [nan nan nan];
+small_tri_1_vert_1_xyz = [nan, nan, nan]; small_tri_1_vert_2_xyz = [nan, nan, nan]; small_tri_1_vert_3_xyz = [nan, nan, nan];
+small_tri_2_vert_1_xyz = [nan, nan, nan]; small_tri_2_vert_2_xyz = [nan, nan, nan]; small_tri_2_vert_3_xyz = [nan, nan, nan];
+small_tri_3_vert_1_xyz = [nan, nan, nan]; small_tri_3_vert_2_xyz = [nan, nan, nan]; small_tri_3_vert_3_xyz = [nan, nan, nan];
+small_tri_4_vert_1_xyz = [nan, nan, nan]; small_tri_4_vert_2_xyz = [nan, nan, nan]; small_tri_4_vert_3_xyz = [nan, nan, nan];
 
 i = 1;
-while (i <= size(triangles_idx_xzy_interp,1))  % Iterating through each large triangle (note, interpolating a large triangle may result in the creating of 1-4 smaller but still "large" triangles).
+while (i <= size(triangles_idx_xzy_interp,1)) % Iterating through each large triangle (note, interpolating a large triangle may result in the creating of 1-4 smaller but still "large" triangles).
        
     large_tri_vert_1_xyz(i,:) = avg_s2_xyz_interp(triangles_idx_xzy_interp(i,1),:); % The x,y,and z coordinates (in the SCG reference frame) of vertex 1 of the triangles comprising the 3D hull surface.
     large_tri_vert_2_xyz(i,:) = avg_s2_xyz_interp(triangles_idx_xzy_interp(i,2),:); % The x,y,and z coordinates (in the SCG reference frame) of vertex 2 of the triangles comprising the 3D hull surface.
@@ -87,7 +88,6 @@ while (i <= size(triangles_idx_xzy_interp,1))  % Iterating through each large tr
     
     if (large_tri_area(i) > area_thr) || (large_tri_max_length(i) > length_thr) % Check if large triangle requires interpolation (i.e., if it's actually "large).
         % Tri-force interpolation - creating 4 smaller triangles from the original triangle.
-
         counter_interps = counter_interps + 1; % Increasing the number of interpolations counter.
         
         % Finding the midpoints of the sides of the large triangle.
@@ -157,7 +157,7 @@ while (i <= size(triangles_idx_xzy_interp,1))  % Iterating through each large tr
         small_tri_4_allvertices_idx = [small_tri_4_vert_1_idx, small_tri_4_vert_2_idx, small_tri_4_vert_3_idx];
        
         triangles_idx_xzy_interp = insertrows(triangles_idx_xzy_interp,[small_tri_1_allvertices_idx; small_tri_2_allvertices_idx; small_tri_3_allvertices_idx; small_tri_4_allvertices_idx], i-1);
-        i = i-1; % This way, the four newly-created triangles will also be analysed for possible interpolation.
+        i = i - 1; % This way, the four newly-created triangles will also be analysed for possible interpolation.
         
         % The interpolated large triangle has now become four small triangles. 
         % These four new small triangles are added to the surface.
@@ -173,28 +173,32 @@ clear unos i large_tri_area large_tri_max_length small_tri_1_vert_1_xyz small_tr
 
 
 %% 1.3 Plotting.
-HullSurface = figure;
-title('S2 3D Hull Surface'); xlabel('x (mg)'); ylabel('z (mg)'); zlabel('y (mg)');
+if flag_plot
+    HullSurface = figure;
+    title('S2 3D Hull Surface'); xlabel('x (mg)'); ylabel('z (mg)'); zlabel('y (mg)');
 
-% Plotting the original S2 acceleration trajectory.
-plot3(avg_s2_xyz(:,1), avg_s2_xyz(:,3), avg_s2_xyz(:,2),'k','LineWidth',2); hold on;
+    % Plotting the original S2 acceleration trajectory.
+    plot3(avg_s2_xyz(:,1), avg_s2_xyz(:,3), avg_s2_xyz(:,2),'k','LineWidth',2); hold on;
 
-% Plotting the vertices of the triangles defining the 3D Hull Surface.
-% hold on; plot3(large_tri_vert_1_xyz(:,1),large_tri_vert_1_xyz(:,3),large_tri_vert_1_xyz(:,2),'r.','MarkerSize',10); plot3(large_tri_vert_2_xyz(:,1),large_tri_vert_2_xyz(:,3),large_tri_vert_2_xyz(:,2),'r.','MarkerSize',10); plot3(large_tri_vert_3_xyz(:,1),large_tri_vert_3_xyz(:,3),large_tri_vert_3_xyz(:,2),'r.','MarkerSize',10);
+    % Plotting the vertices of the triangles defining the 3D Hull Surface.
+    % hold on; plot3(large_tri_vert_1_xyz(:,1),large_tri_vert_1_xyz(:,3),large_tri_vert_1_xyz(:,2),'r.','MarkerSize',10); plot3(large_tri_vert_2_xyz(:,1),large_tri_vert_2_xyz(:,3),large_tri_vert_2_xyz(:,2),'r.','MarkerSize',10); plot3(large_tri_vert_3_xyz(:,1),large_tri_vert_3_xyz(:,3),large_tri_vert_3_xyz(:,2),'r.','MarkerSize',10);
 
-% Plotting the (possibly interpolated) 3D Hull Surface.
-trisurf(triangles_idx_xzy_interp, avg_s2_xyz_interp(:,1), avg_s2_xyz_interp(:,3), avg_s2_xyz_interp(:,2), sqrt(avg_s2_xyz_interp(:,1).^2 + avg_s2_xyz_interp(:,3).^2 + avg_s2_xyz_interp(:,2).^2) ,'FaceAlpha',0.5,'EdgeAlpha',0); colormap spring; xlabel('x (mg)'); ylabel('z (mg)'); zlabel('y (mg)'); hold on;
+    % Plotting the (possibly interpolated) 3D Hull Surface.
+    trisurf(triangles_idx_xzy_interp, avg_s2_xyz_interp(:,1), avg_s2_xyz_interp(:,3), avg_s2_xyz_interp(:,2), sqrt(avg_s2_xyz_interp(:,1).^2 + avg_s2_xyz_interp(:,3).^2 + avg_s2_xyz_interp(:,2).^2) ,'FaceAlpha',0.5,'EdgeAlpha',0); colormap spring; xlabel('x (mg)'); ylabel('z (mg)'); zlabel('y (mg)'); hold on;
 
-min_lim = min(avg_s2_xyz_interp); 
-max_lim = max(avg_s2_xyz_interp); xlim([min_lim(1) max_lim(1)]); 
-ylim([min_lim(1) max_lim(1)]); zlim([min_lim(1) max_lim(1)]); % Setting all axes to equal span.
+    min_lim = min(avg_s2_xyz_interp);
+    max_lim = max(avg_s2_xyz_interp); 
+    xlim([min_lim(1), max_lim(1)]);
+    ylim([min_lim(1), max_lim(1)]); 
+    zlim([min_lim(1), max_lim(1)]); % Setting all axes to equal span.
 
-legend('S2 Acceleration Trajectory','S2 Hull'); 
-hcb=colorbar; 
-title(hcb,' Acceleration (mg)'); 
-title('S2')
+    legend('S2 Acceleration Trajectory','S2 Hull');
+    hcb=colorbar;
+    title(hcb,' Acceleration (mg)');
+    title('S2')
 
-clear min_lim max_lim hcb
+    clear min_lim max_lim hcb
+end
 
 
 %% 2. Identification of the azimuthal and elevation angles that produce the maximum antipode.
@@ -242,27 +246,27 @@ clear s2_p_x_mat s2_p_y_mat s2_p_z_mat radius_x_mat radius_y_mat radius_z_mat
 
 
 %% 2.2 - Calculating the 3D Hull Surface "diameter" (i.e. the antipodal distance) for each combination of elevation and azimuthal angle.
-diameter_sph_mat = zeros([181,180]); % Initialization for efficiency
+diameter_sph_mat = zeros([181, 180]); % Initialization for efficiency
 for el_mat = -90:1:90 % Considering the anterior hemisphere (only a single hemisphere needs to be considered as the "diameter" measured from the opposing hemisphere is the same).
     for az_mat = -179:1:0
         
         % Calculating the antipodal elevation and azimuth for the current elevation and azimuth angle combination.
-        [antipodal_el_mat, antipodal_az_mat] = antipodal_calculator(el_mat, az_mat); 
+        [el_antipode_mat, az_antipode_mat] = antipodal_calculator(el_mat, az_mat); % Calculating the antipodal elevation and azimuth for the current elevation and azimuth angle combination.
 
         % Identifying the indices in radius_sph_mat for the radii corresponding to the current elevation and azimuth angle combination and its antipode.
         idx_el_mat = el_mat + 91;
         idx_az_mat = az_mat + 180;
         
-        idx_antipodal_el_mat = antipodal_el_mat + 91;
-        idx_antipodal_az_mat = antipodal_az_mat + 180;
+        idx_el_antipode_mat = el_antipode_mat + 91;
+        idx_az_antipode_mat = az_antipode_mat + 180;
         
         % Calculating the "diameter" = sum of antipodal radii, for that particular elevation and azimuthal angle combination.
-        diameter_sph_mat(el_mat + 91, az_mat + 180) = radius_sph_mat(idx_el_mat,idx_az_mat) + radius_sph_mat(idx_antipodal_el_mat,idx_antipodal_az_mat);
+        diameter_sph_mat(el_mat + 91, az_mat + 180) = radius_sph_mat(idx_el_mat, idx_az_mat) + radius_sph_mat(idx_el_antipode_mat,idx_az_antipode_mat);
   
     end
 end
 
-clear el_mat idx_el_mat az_mat idx_az_mat antipodal_el_mat antipodal_az_mat idx_antipodal_el_mat idx_antipodal_az_mat
+clear el_mat idx_el_mat az_mat idx_az_mat el_antipode_mat az_antipode_mat idx_el_antipode_mat idx_az_antipode_mat
 
 
 %% 2.3 Finding the angle combination maximising the 3D Hull Surface "diameter".
@@ -332,17 +336,14 @@ clear idx_max_diameter_el_sph idx_max_diameter_az_sph idx_max_diameter_el_antipo
 
 
 %% 5 Converting the function output angles into the SCG reference frame.
-max_diameter_el_sph_scg = max_diameter_el_sph_mat;
-max_diameter_az_sph_scg = -1*max_diameter_az_sph_mat;
-min_diameter_el_sph_scg = min_diameter_el_sph_mat;
-min_diameter_az_sph_scg = -1*min_diameter_az_sph_mat;
+el_mech_axis = max_diameter_el_sph_mat;
+az_mech_axis = -1*max_diameter_az_sph_mat;
+el_antimech_axis = min_diameter_el_sph_mat;
+az_antimech_axis = -1*min_diameter_az_sph_mat;
 
 clear max_diameter_el_sph_mat max_diameter_az_sph_mat min_diameter_el_sph_mat min_diameter_az_sph_mat
 
-max_diameter_angles = [max_diameter_el_sph_scg, max_diameter_az_sph_scg]; 
-min_diameter_angles = [min_diameter_el_sph_scg, min_diameter_az_sph_scg]; 
-
-axes_angles = [max_diameter_angles, min_diameter_angles]; % The output of the function is the max S2 3D Hull Surface diameter elevation and azimuth angles and the min S2 3D Hull Surface diameter elevation and azimuth angles in the SCG reference frame.
+axes_angles = [el_mech_axis, az_mech_axis, el_antimech_axis, az_antimech_axis];
 end
 
 

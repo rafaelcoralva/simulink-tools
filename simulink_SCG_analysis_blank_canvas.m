@@ -9,7 +9,7 @@ bdclose('all')
     
 % Figure Display settings.
 get(0,'Factory');
-set(0,'defaultfigurecolor', [1 1 1]);
+set(0,'defaultfigurecolor', [1, 1, 1]);
 set(0,'DefaultFigureWindowStyle','docked');
 
 % Loading specific data recording using UI.
