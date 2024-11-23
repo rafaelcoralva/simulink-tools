@@ -165,7 +165,7 @@ signals.scg.input_z = cardiac_vibrations.signals.lead_3D_z(:);
 clear ecgs cardiac_vibrations
 
 
-%%  ---------------------------- 3.0 Loading Simulink Model (ECG and SCG processing) ---------------------------- %%
+%%  ---------------------------- 3.0 Loading Full CardioLab Simulink Model (ECG and SCG processing) ---------------------------- %%
 
 open_system('FullCardioLablModel'); 
 sim('FullCardioLablModel');
