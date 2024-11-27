@@ -6,7 +6,7 @@ clear
 close all
 clc
 bdclose('all')
-    
+        
 % Figure Display settings.
 get(0,'Factory');
 set(0,'defaultfigurecolor', [1, 1, 1]);
@@ -167,8 +167,8 @@ clear ecgs cardiac_vibrations
 
 %%  ---------------------------- 3.0 Loading Full CardioLab Simulink Model (ECG and SCG processing) ---------------------------- %%
 
-open_system('FullCardioLablModel'); 
-sim('FullCardioLablModel');
+open_system('FullCardioLabModel'); 
+sim('FullCardioLabModel');
 
 
 %%  ---------------------------- 4.0 Saving Model Outputs [WIP] ---------------------------- %%
